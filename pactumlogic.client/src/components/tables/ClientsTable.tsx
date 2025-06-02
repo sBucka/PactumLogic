@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
-import type { Client } from "../../models/Client";
-import GenericTable, { type TableColumn, type TableAction } from "./GenericTable";
+import type { ClientWithContracts } from "../../models/Client";
+import GenericTable, {
+  type TableColumn,
+  type TableAction,
+} from "./GenericTable";
 import { useDelete } from "../../hooks/useDelete";
 
 interface ClientsTableProps {
-  clients: Client[];
+  clients: ClientWithContracts[];
   showActions?: boolean;
   className?: string;
   delete?: boolean;
@@ -20,7 +23,7 @@ const ClientsTable = ({
 }: ClientsTableProps) => {
   const { openDeleteModal, Modal } = useDelete();
 
-  const columns: TableColumn<Client>[] = [
+  const columns: TableColumn<ClientWithContracts>[] = [
     {
       header: "Meno",
       accessor: (client) => (
@@ -40,30 +43,52 @@ const ClientsTable = ({
       accessor: (client) => client.phone,
     },
     {
-      header: "Vek",
-      accessor: (client) => client.age,
+      header: "Osobné číslo",
+      accessor: (client) => client.personalIdNumber || "N/A",
+    },
+    {
+      header: "Počet zmlúv",
+      accessor: (client) => {
+        const contractsLength = client.contracts.length;
+        
+        return (
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              contractsLength > 0
+                ? "bg-green-100 text-green-800"
+                : "bg-gray-100 text-gray-800"
+            }`}
+          >
+            {contractsLength}
+          </span>
+        );
+      },
     },
   ];
 
-  const actions: TableAction<Client>[] = showActions
+  const actions: TableAction<ClientWithContracts>[] = showActions
     ? [
         {
           label: "Detail",
           href: (client) => `/clients/${client.id}`,
           className: "text-teal-600 hover:text-teal-900",
         },
-        ...(showDelete ? [{
-          label: "Zmazať",
-          onClick: (client: Client) => {
-            openDeleteModal(
-              'client',
-              client.id,
-              `${client.firstName} ${client.lastName}`,
-              () => onClientDeleted?.(client.id)
-            );
-          },
-          className: "text-red-600 hover:text-red-900",
-        }] : []),
+        ...(showDelete
+          ? [
+              {
+                label: "Zmazať",
+                onClick: (client: ClientWithContracts) => {
+                  openDeleteModal(
+                    "client",
+                    client.id,
+                    `${client.firstName} ${client.lastName}`,
+                    () => onClientDeleted?.(client.id)
+                  );
+                },
+                className: "text-red-600 hover:text-red-900",
+              },
+            ]
+          : []),
       ]
     : [];
 

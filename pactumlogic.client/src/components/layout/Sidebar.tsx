@@ -48,7 +48,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             Klienti
           </NavLink>
           <NavLink to='/advisors' className={getNavLinkClasses}>
-            Účasníci
+            Poradcovia
           </NavLink>
         </nav>
       </aside>
@@ -110,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             className={getNavLinkClasses}
             onClick={handleNavClick}
           >
-            Účasníci
+            Poradcovia
           </NavLink>
         </nav>
       </aside>
