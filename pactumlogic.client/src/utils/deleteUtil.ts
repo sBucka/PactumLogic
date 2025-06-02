@@ -1,11 +1,10 @@
 import { contractService } from "../services/contractService";
 import { clientService } from "../services/clientService";
-import { advisorService } from "../services/advisorService";
 
 const services = {
   contract: contractService,
   client: clientService,
-  advisor: advisorService,
+  advisor: clientService, 
 };
 
 export type EntityType = keyof typeof services;
