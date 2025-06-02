@@ -106,7 +106,7 @@ Aplikácia bola navrhnutá vo **Figme** vrátane vlastného loga a dizajnu syst�
 1. Spustite migrácie: `dotnet ef database update`
 2. Spustite backend: `dotnet run`
 
-### 🔐 Testovanie
+### Testovanie
 
 **Admin účet:**
 
