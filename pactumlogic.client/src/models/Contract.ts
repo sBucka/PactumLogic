@@ -1,4 +1,3 @@
-import type { Advisor } from "./Advisor";
 import type { Client } from "./Client";
 
 export interface Contract {
@@ -13,14 +12,14 @@ export interface Contract {
 
   // Optional expanded objects for detail views
   client?: Client;
-  administrator?: Advisor;
-  advisors?: Advisor[];
+  administrator?: Client; 
+  advisors?: Client[]; 
 }
 
 export interface ContractWithDetails extends Contract {
   client: Client;
-  administrator: Advisor;
-  advisors: Advisor[];
+  administrator: Client; 
+  advisors: Client[]; 
 }
 
 export interface CreateContractRequest {
@@ -29,6 +28,15 @@ export interface CreateContractRequest {
   clientEmail: string;
   administratorEmail: string;
   advisorEmails: string[];
+  contractDate: string;
+  validityDate: string;
+  terminationDate?: string;
+}
+
+export interface ContractSummary {
+  id: number;
+  referenceNumber: string;
+  institution: string;
   contractDate: string;
   validityDate: string;
   terminationDate?: string;

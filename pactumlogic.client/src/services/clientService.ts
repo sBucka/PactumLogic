@@ -1,13 +1,30 @@
 import api from "./api";
-import type { Client, CreateClientRequest } from "../models/Client";
+import type {
+  ClientWithContracts,
+  ClientWithAllContracts,
+  CreateClientRequest,
+  Client,
+  AdvisorWithContracts,
+} from "../models/Client";
+import { ClientType } from "../models/Client";
 
 export const clientService = {
-  getAll: async (): Promise<Client[]> => {
+  getAll: async (): Promise<ClientWithContracts[]> => {
     const response = await api.get("/clients");
     return response.data;
   },
 
-  getById: async (id: number): Promise<Client> => {
+  getAllAdvisors: async (): Promise<Client[]> => {
+    const response = await api.get("/clients/advisors");
+    return response.data;
+  },
+
+  getAllAdvisorsWithContracts: async (): Promise<AdvisorWithContracts[]> => {
+    const response = await api.get("/clients/advisors-with-contracts");
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ClientWithAllContracts> => {
     const response = await api.get(`/clients/${id}`);
     return response.data;
   },
@@ -17,7 +34,7 @@ export const clientService = {
     return response.data;
   },
 
-  update: async (id: number, client: Partial<CreateClientRequest>): Promise<Client> => {
+  update: async (id: number, client: CreateClientRequest): Promise<Client> => {
     const response = await api.put<Client>(`/clients/${id}`, client);
     return response.data;
   },

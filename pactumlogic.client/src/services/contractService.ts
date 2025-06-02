@@ -1,8 +1,6 @@
 import api from "./api";
 import type { ContractWithDetails, CreateContractRequest } from "../models/Contract";
 
-
-
 export const contractService = {
   getAll: async (): Promise<ContractWithDetails[]> => {
     const response = await api.get("/contracts");
@@ -23,6 +21,11 @@ export const contractService = {
 
   create: async (contract: CreateContractRequest): Promise<ContractWithDetails> => {
     const response = await api.post<ContractWithDetails>("/contracts", contract);
+    return response.data;
+  },
+
+  update: async (id: number, contract: CreateContractRequest): Promise<ContractWithDetails> => {
+    const response = await api.put<ContractWithDetails>(`/contracts/${id}`, contract);
     return response.data;
   },
 
