@@ -12,13 +12,17 @@ namespace PactumLogic.Server.Data
         }
 
         public DbSet<Client> Clients { get; set; } = null!;
-        public DbSet<Advisor> Advisors { get; set; } = null!;
         public DbSet<Contract> Contracts { get; set; } = null!;
         public DbSet<ContractAdvisor> ContractAdvisors { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder); // Important: Call base first for Identity
+            base.OnModelCreating(modelBuilder);
+
+            // Configure Client unique email
+            modelBuilder.Entity<Client>()
+                .HasIndex(c => c.Email)
+                .IsUnique();
 
             // Configure many-to-many relationship
             modelBuilder.Entity<ContractAdvisor>()
@@ -38,16 +42,16 @@ namespace PactumLogic.Server.Data
 
             // Configure Contract relationships
             modelBuilder.Entity<Contract>()
-                .HasOne(c => c.Administrator)
-                .WithMany()
-                .HasForeignKey(c => c.AdministratorId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            modelBuilder.Entity<Contract>()
                 .HasOne(c => c.Client)
-                .WithMany(cl => cl.Contracts)
+                .WithMany(cl => cl.ClientContracts)
                 .HasForeignKey(c => c.ClientId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Contract>()
+                .HasOne(c => c.Administrator)
+                .WithMany(cl => cl.AdministratorContracts)
+                .HasForeignKey(c => c.AdministratorId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

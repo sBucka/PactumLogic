@@ -9,10 +9,11 @@ namespace PactumLogic.Server.Data.Seeders
         {
             if (!await context.Clients.AnyAsync())
             {
-                logger.LogInformation("Seeding clients...");
+                logger.LogInformation("Seeding clients and advisors...");
 
-                var clients = new[]
+                var people = new[]
                 {
+                    // Pure clients
                     new Client
                     {
                         FirstName = "Pavel",
@@ -20,7 +21,8 @@ namespace PactumLogic.Server.Data.Seeders
                         Email = "pavel.prochazka@email.com",
                         Phone = "+420111222333",
                         PersonalIdNumber = "9001010001",
-                        Age = 34
+                        Age = 34,
+                        Type = ClientType.Client
                     },
                     new Client
                     {
@@ -29,8 +31,31 @@ namespace PactumLogic.Server.Data.Seeders
                         Email = "anna.kratochvilova@email.com",
                         Phone = "+420444555666",
                         PersonalIdNumber = "8806061234",
-                        Age = 36
+                        Age = 36,
+                        Type = ClientType.Client
                     },
+                    // Pure advisors
+                    new Client
+                    {
+                        FirstName = "Jan",
+                        LastName = "Novák",
+                        Email = "jan.novak@pactum.com",
+                        Phone = "+420123456789",
+                        PersonalIdNumber = "8001010123",
+                        Age = 44,
+                        Type = ClientType.Advisor
+                    },
+                    new Client
+                    {
+                        FirstName = "Marie",
+                        LastName = "Svobodová",
+                        Email = "marie.svobodova@pactum.com",
+                        Phone = "+420987654321",
+                        PersonalIdNumber = "8505051234",
+                        Age = 39,
+                        Type = ClientType.Advisor
+                    },
+                    // Someone who is both client and advisor
                     new Client
                     {
                         FirstName = "Tomáš",
@@ -38,26 +63,18 @@ namespace PactumLogic.Server.Data.Seeders
                         Email = "tomas.cerny@email.com",
                         Phone = "+420777888999",
                         PersonalIdNumber = "9205055678",
-                        Age = 32
-                    },
-                    new Client
-                    {
-                        FirstName = "Klára",
-                        LastName = "Veselá",
-                        Email = "klara.vesela@email.com",
-                        Phone = "+420123789456",
-                        PersonalIdNumber = "9112121010",
-                        Age = 33
+                        Age = 32,
+                        Type = ClientType.Both
                     }
                 };
 
-                context.Clients.AddRange(clients);
+                context.Clients.AddRange(people);
                 await context.SaveChangesAsync();
-                logger.LogInformation($"Seeded {clients.Length} clients.");
+                logger.LogInformation($"Seeded {people.Length} people (clients and advisors).");
             }
             else
             {
-                logger.LogInformation("Clients already exist, skipping seeding.");
+                logger.LogInformation("People already exist, skipping seeding.");
             }
         }
     }

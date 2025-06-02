@@ -6,13 +6,10 @@
         {
             logger.LogInformation("Starting application data seeding...");
 
-            // Seed advisors first (required for contracts)
-            await AdvisorSeeder.SeedAsync(context, logger);
-
-            // Seed clients (required for contracts)
+            // Seed clients first (includes advisors now since they use the same table)
             await ClientSeeder.SeedAsync(context, logger);
 
-            // Seed contracts last (depends on advisors and clients)
+            // Seed contracts last (depends on clients/advisors)
             await ContractSeeder.SeedAsync(context, logger);
 
             logger.LogInformation("Application data seeding completed.");
