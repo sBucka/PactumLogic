@@ -1,355 +1,355 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { contractService, type CreateContractRequest } from '../../services/contractService';
-import { ArrowLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { contractService } from "../../services/contractService";
+import { clientService } from "../../services/clientService";
+import { ArrowLeftIcon, PlusIcon } from "@heroicons/react/24/outline";
+import type { CreateContractRequest } from "../../models/Contract";
+import type { Client } from "../../models/Client";
+import { ClientType } from "../../models/Client";
+import FormField from "../../components/forms/FormField";
+import { INSTITUTIONS } from "../../constants/institutions";
+import { useFormValidation } from "../../hooks/useFormValidation";
 
 const ContractFormPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [advisorEmails, setAdvisorEmails] = useState<string[]>(['']);
 
-  const [formData, setFormData] = useState<CreateContractRequest>({
-    referenceNumber: '',
-    institution: '',
-    clientEmail: '',
-    administratorEmail: '',
-    advisorEmails: [''],
-    contractDate: '',
-    validityDate: '',
-    terminationDate: '',
-  });
+  // Data loading states
+  const [clients, setClients] = useState<Client[]>([]);
+  const [advisors, setAdvisors] = useState<Client[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+  const initialData: CreateContractRequest = {
+    referenceNumber: "",
+    institution: "",
+    clientEmail: "",
+    administratorEmail: "",
+    advisorEmails: [],
+    contractDate: "",
+    validityDate: "",
+    terminationDate: "",
+  };
+
+  const validationRules = {
+    referenceNumber: [
+      { required: true },
+      { minLength: 3, custom: (value: string) => value.length < 3 ? "Evidenčné číslo musí mať aspoň 3 znaky" : null }
+    ],
+    institution: [{ required: true }],
+    clientEmail: [{ required: true }],
+    administratorEmail: [{ required: true }],
+    contractDate: [
+      { required: true },
+      { custom: (value: string) => !value ? "Dátum uzavretia je povinný" : null }
+    ],
+    validityDate: [
+      { required: true },
+      { custom: (value: string) => !value ? "Dátum platnosti je povinný" : null }
+    ]
+  };
+
+  const { formData, errors, handleChange, validate, setFormData } = useFormValidation(
+    initialData,
+    validationRules
+  );
+
+  // Load clients and advisors on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoadingData(true);
+        const [clientsData, advisorsData] = await Promise.all([
+          clientService.getAll(),
+          clientService.getAllAdvisors(),
+        ]);
+
+        const clientsBasic = clientsData.map((client) => ({
+          id: client.id,
+          firstName: client.firstName,
+          lastName: client.lastName,
+          email: client.email,
+          phone: client.phone,
+          personalIdNumber: client.personalIdNumber,
+          age: client.age,
+          type: client.type,
+        }));
+
+        setClients(clientsBasic);
+        setAdvisors(advisorsData);
+      } catch (err) {
+        console.error("Error loading data:", err);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    handleChange(e);
+  };
+
+  const handleAdvisorChange = (advisorEmail: string, checked: boolean) => {
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      advisorEmails: checked
+        ? [...prev.advisorEmails, advisorEmail]
+        : prev.advisorEmails.filter((email) => email !== advisorEmail),
     }));
   };
 
-  const handleAdvisorEmailChange = (index: number, value: string) => {
-    const newEmails = [...advisorEmails];
-    newEmails[index] = value;
-    setAdvisorEmails(newEmails);
-    setFormData(prev => ({
-      ...prev,
-      advisorEmails: newEmails.filter(email => email.trim() !== '')
-    }));
-  };
-
-  const addAdvisorEmail = () => {
-    setAdvisorEmails([...advisorEmails, '']);
-  };
-
-  const removeAdvisorEmail = (index: number) => {
-    if (advisorEmails.length > 1) {
-      const newEmails = advisorEmails.filter((_, i) => i !== index);
-      setAdvisorEmails(newEmails);
-      setFormData(prev => ({
-        ...prev,
-        advisorEmails: newEmails.filter(email => email.trim() !== '')
-      }));
-    }
+  const getPersonDisplayText = (person: Client) => {
+    const typeText =
+      person.type === ClientType.Both
+        ? " (Klient & Poradca)"
+        : person.type === ClientType.Client
+        ? " (Klient)"
+        : " (Poradca)";
+    return `${person.firstName} ${person.lastName} (${person.email})${typeText}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
-    // Validation
-    if (!formData.referenceNumber.trim()) {
-      setError('Evidenčné číslo je povinné');
-      return;
-    }
-    if (!formData.institution.trim()) {
-      setError('Inštitúcia je povinná');
-      return;
-    }
-    if (!formData.clientEmail.trim()) {
-      setError('Email klienta je povinný');
-      return;
-    }
-    if (!formData.administratorEmail.trim()) {
-      setError('Email správcu je povinný');
-      return;
-    }
-    if (!formData.contractDate) {
-      setError('Dátum uzavretia je povinný');
-      return;
-    }
-    if (!formData.validityDate) {
-      setError('Dátum platnosti je povinný');
+    if (!validate()) {
       return;
     }
 
-    // Check if contract date is not in the future
+    // Additional validation for dates
     const contractDate = new Date(formData.contractDate);
     const validityDate = new Date(formData.validityDate);
-    
+
     if (validityDate <= contractDate) {
-      setError('Dátum platnosti musí byť neskôr ako dátum uzavretia');
+      setFormData(prev => ({ ...prev, validityDate: "" }));
       return;
+    }
+
+    // Ensure at least administrator is selected as advisor
+    if (!formData.advisorEmails.includes(formData.administratorEmail)) {
+      setFormData((prev) => ({
+        ...prev,
+        advisorEmails: [...prev.advisorEmails, prev.administratorEmail],
+      }));
     }
 
     try {
       setIsLoading(true);
-      
-      // Filter out empty advisor emails
-      const filteredAdvisorEmails = advisorEmails.filter(email => email.trim() !== '');
-      
-      const contractData: CreateContractRequest = {
-        ...formData,
-        advisorEmails: filteredAdvisorEmails,
-        terminationDate: formData.terminationDate || undefined
-      };
-
-      const createdContract = await contractService.create(contractData);
-      
-      // Redirect to contract detail page
+      const createdContract = await contractService.create(formData);
       navigate(`/contracts/${createdContract.id}`);
-    } catch (err: any) {
-      console.error('Error creating contract:', err);
-      setError(err.response?.data?.message || 'Chyba pri vytváraní zmluvy. Skúste to znova.');
+    } catch (err) {
+      console.error("Error creating contract:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const institutions = [
-    'ČSOB',
-    'AEGON',
-    'AXA',
-    'Allianz',
-    'Generali',
-    'MetLife',
-    'Kooperativa',
-    'Union',
-    'Iná'
-  ];
+  const institutions = INSTITUTIONS;
 
-  const inputClasses = "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500";
-  const labelClasses = "block text-sm font-medium text-gray-700 mb-1";
+  if (isLoadingData) {
+    return (
+      <div className='flex items-center justify-center min-h-96'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto'></div>
+          <p className='mt-4 text-gray-600'>Načítavam dáta...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className='max-w-4xl mx-auto space-y-6'>
       {/* Header */}
-      <div className="flex items-center space-x-4">
+      <div className='flex items-center space-x-4'>
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+          className='p-2 rounded-md hover:bg-gray-100'
         >
-          <ArrowLeftIcon className="h-5 w-5" />
+          <ArrowLeftIcon className='h-5 w-5' />
         </button>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Nová zmluva
-          </h1>
-          <p className="text-gray-600 mt-1">Vytvorte novú zmluvu</p>
+          <h1 className='text-2xl font-bold text-gray-900'>Nová zmluva</h1>
+          <p className='text-gray-600'>Vytvorte novú zmluvu</p>
         </div>
       </div>
 
       {/* Form */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+      <div className='bg-white p-6 rounded-lg shadow'>
+        <form onSubmit={handleSubmit} className='space-y-6'>
+          {/* Reference Number & Institution */}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <FormField
+              label='Evidenčné číslo'
+              name='referenceNumber'
+              value={formData.referenceNumber}
+              onChange={handleInputChange}
+              required
+              type='text'
+              placeholder='Zadajte evidenčné číslo zmluvy'
+              error={errors.referenceNumber}
+            />
 
-          {/* Basic Information */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">
-              Základné informácie
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="referenceNumber" className={labelClasses}>
-                  Evidenčné číslo *
-                </label>
-                <input
-                  type="text"
-                  id="referenceNumber"
-                  name="referenceNumber"
-                  value={formData.referenceNumber}
-                  onChange={handleInputChange}
-                  placeholder="napr. CSOB-2024-001"
-                  className={inputClasses}
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="institution" className={labelClasses}>
-                  Inštitúcia *
-                </label>
-                <select
-                  id="institution"
-                  name="institution"
-                  value={formData.institution}
-                  onChange={handleInputChange}
-                  className={inputClasses}
-                  required
-                >
-                  <option value="">Vyberte inštitúciu</option>
-                  {institutions.map((inst) => (
-                    <option key={inst} value={inst}>
-                      {inst}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <FormField
+              label='Inštitúcia'
+              name='institution'
+              value={formData.institution}
+              onChange={handleInputChange}
+              required
+              type='select'
+              options={institutions.map((inst) => ({
+                value: inst,
+                label: inst,
+              }))}
+              placeholder='Vyberte inštitúciu'
+              error={errors.institution}
+            />
           </div>
 
-          {/* Participants */}
+          {/* Client Selection */}
           <div>
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">
-              Účastníci
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="clientEmail" className={labelClasses}>
-                  Email klienta *
-                </label>
-                <input
-                  type="email"
-                  id="clientEmail"
-                  name="clientEmail"
-                  value={formData.clientEmail}
-                  onChange={handleInputChange}
-                  placeholder="klient@email.com"
-                  className={inputClasses}
-                  required
-                />
-              </div>
+            <FormField
+              label='Klient'
+              name='clientEmail'
+              value={formData.clientEmail}
+              onChange={handleInputChange}
+              required
+              type='select'
+              options={clients.map((client) => ({
+                value: client.email,
+                label: getPersonDisplayText(client),
+              }))}
+              placeholder='Vyberte klienta'
+              error={errors.clientEmail}
+            />
+            <Link
+              to='/clients/new'
+              className='inline-flex items-center text-sm text-teal-600 hover:text-teal-800'
+            >
+              <PlusIcon className='h-4 w-4 mr-1' />
+              Pridať novú osobu
+            </Link>
+          </div>
 
-              <div>
-                <label htmlFor="administratorEmail" className={labelClasses}>
-                  Email správcu *
-                </label>
-                <input
-                  type="email"
-                  id="administratorEmail"
-                  name="administratorEmail"
-                  value={formData.administratorEmail}
-                  onChange={handleInputChange}
-                  placeholder="spravca@email.com"
-                  className={inputClasses}
-                  required
-                />
-              </div>
-            </div>
+          {/* Administrator Selection */}
+          <div>
+            <FormField
+              label='Správca zmluvy'
+              name='administratorEmail'
+              value={formData.administratorEmail}
+              onChange={handleInputChange}
+              required
+              type='select'
+              options={advisors.map((advisor) => ({
+                value: advisor.email,
+                label: getPersonDisplayText(advisor),
+              }))}
+              placeholder='Vyberte správcu'
+              error={errors.administratorEmail}
+            />
+            <Link
+              to='/clients/new'
+              className='inline-flex items-center text-sm text-teal-600 hover:text-teal-800'
+            >
+              <PlusIcon className='h-4 w-4 mr-1' />
+              Pridať novú osobu
+            </Link>
+          </div>
 
-            {/* Advisor Emails */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className={labelClasses}>
-                  Dodatočné emaily účasníkov (poradcov)
-                </label>
-                <button
-                  type="button"
-                  onClick={addAdvisorEmail}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-teal-700 bg-teal-100 hover:bg-teal-200 transition-colors"
-                >
-                  <PlusIcon className="h-4 w-4 mr-1" />
-                  Pridať
-                </button>
-              </div>
-              <div className="space-y-2">
-                {advisorEmails.map((email, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+          {/* Additional Advisors */}
+          <div>
+            <label className='block text-sm font-medium text-gray-700 mb-3'>
+              Ďalší poradcovia (voliteľné)
+            </label>
+            <div className='space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3'>
+              {advisors
+                .filter(
+                  (advisor) => advisor.email !== formData.administratorEmail
+                )
+                .map((advisor) => (
+                  <div key={advisor.id} className='flex items-center'>
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => handleAdvisorEmailChange(index, e.target.value)}
-                      placeholder={`klient${index + 1}@email.com`}
-                      className={inputClasses}
+                      type='checkbox'
+                      id={`advisor-${advisor.id}`}
+                      checked={formData.advisorEmails.includes(advisor.email)}
+                      onChange={(e) =>
+                        handleAdvisorChange(advisor.email, e.target.checked)
+                      }
+                      className='h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded'
                     />
-                    {advisorEmails.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeAdvisorEmail(index)}
-                        className="p-2 text-red-600 hover:text-red-800 transition-colors"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
-                    )}
+                    <label
+                      htmlFor={`advisor-${advisor.id}`}
+                      className='ml-2 text-sm text-gray-700 cursor-pointer'
+                    >
+                      {advisor.firstName} {advisor.lastName} ({advisor.email})
+                    </label>
                   </div>
                 ))}
-              </div>
+              {advisors.filter(
+                (advisor) => advisor.email !== formData.administratorEmail
+              ).length === 0 && (
+                <p className='text-sm text-gray-500 italic'>
+                  {formData.administratorEmail
+                    ? "Žiadni ďalší poradcovia k dispozícii"
+                    : "Najprv vyberte správcu zmluvy"}
+                </p>
+              )}
             </div>
           </div>
 
           {/* Dates */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">
-              Dátumy
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="contractDate" className={labelClasses}>
-                  Dátum uzavretia *
-                </label>
-                <input
-                  type="date"
-                  id="contractDate"
-                  name="contractDate"
-                  value={formData.contractDate}
-                  onChange={handleInputChange}
-                  className={inputClasses}
-                  required
-                />
-              </div>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <FormField
+              label='Dátum uzavretia'
+              name='contractDate'
+              type='date'
+              value={formData.contractDate}
+              onChange={handleInputChange}
+              required
+              error={errors.contractDate}
+            />
 
-              <div>
-                <label htmlFor="validityDate" className={labelClasses}>
-                  Dátum platnosti *
-                </label>
-                <input
-                  type="date"
-                  id="validityDate"
-                  name="validityDate"
-                  value={formData.validityDate}
-                  onChange={handleInputChange}
-                  className={inputClasses}
-                  required
-                />
-              </div>
+            <FormField
+              label='Dátum platnosti'
+              name='validityDate'
+              type='date'
+              value={formData.validityDate}
+              onChange={handleInputChange}
+              required
+              error={errors.validityDate}
+            />
 
-              <div>
-                <label htmlFor="terminationDate" className={labelClasses}>
-                  Dátum ukončenia
-                </label>
-                <input
-                  type="date"
-                  id="terminationDate"
-                  name="terminationDate"
-                  value={formData.terminationDate}
-                  onChange={handleInputChange}
-                  className={inputClasses}
-                />
-              </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>
+                Dátum ukončenia
+              </label>
+              <input
+                type='date'
+                name='terminationDate'
+                value={formData.terminationDate}
+                onChange={handleInputChange}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500'
+              />
             </div>
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className='flex justify-end space-x-3 pt-4 border-t'>
             <button
-              type="button"
+              type='button'
               onClick={() => navigate(-1)}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+              className='px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50'
               disabled={isLoading}
             >
               Zrušiť
             </button>
             <button
-              type="submit"
+              type='submit'
               disabled={isLoading}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className='px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:opacity-50'
             >
-              {isLoading ? 'Vytváram...' : 'Vytvoriť zmluvu'}
+              {isLoading ? "Vytváram..." : "Vytvoriť zmluvu"}
             </button>
           </div>
         </form>

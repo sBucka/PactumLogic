@@ -13,6 +13,7 @@ import AdvisorDetailPage from "../pages/advisors/AdvisorDetailPage";
 import AdvisorFormPage from "../pages/advisors/AdvisorFormPage";
 import Layout from "../components/layout/Layout";
 import ProtectedRoute from "../components/common/ProtectedRoute";
+import ContractEditPage from "../pages/contracts/ContractEditPage";
 
 const AppRoutes = () => {
   return (
@@ -32,19 +33,17 @@ const AppRoutes = () => {
           <Route index element={<ContractListPage />} />
           <Route path=':id' element={<ContractDetailPage />} />
           <Route path='new' element={<ContractFormPage />} />
-          <Route path='edit/:id' element={<ContractFormPage />} />
+          <Route path=':id/edit' element={<ContractEditPage />} />
         </Route>
         <Route path='clients'>
           <Route index element={<ClientListPage />} />
           <Route path=':id' element={<ClientDetailPage />} />
           <Route path='new' element={<ClientFormPage />} />
-          <Route path='edit/:id' element={<ClientFormPage />} />
         </Route>
         <Route path='advisors'>
           <Route index element={<AdvisorListPage />} />
           <Route path=':id' element={<AdvisorDetailPage />} />
           <Route path='new' element={<AdvisorFormPage />} />
-          <Route path='edit/:id' element={<AdvisorFormPage />} />
         </Route>
       </Route>
     </Routes>

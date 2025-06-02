@@ -1,9 +1,19 @@
-import React from 'react'
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ClientType } from '../../models/Client';
 
 const AdvisorFormPage = () => {
-  return (
-    <div>AdvisorFormPage</div>
-  )
-}
+  const navigate = useNavigate();
 
-export default AdvisorFormPage
+  useEffect(() => {
+    // Redirect to client form page with advisor default type
+    navigate('/clients/new', { 
+      replace: true, 
+      state: { defaultType: ClientType.Advisor } 
+    });
+  }, [navigate]);
+
+  return null; // This component just redirects
+};
+
+export default AdvisorFormPage;

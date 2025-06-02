@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Navigate } from "react-router-dom";
 import PactumLogic from "../assets/PactumLogic.svg";
-import LoadingSpinner from "../components/common/LoadingSpinner";
 
 const LoginPage = () => {
   const { login, isAuthenticated } = useAuth();

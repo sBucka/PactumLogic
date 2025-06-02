@@ -67,7 +67,7 @@ const DashboardPage = () => {
       link: "/clients",
     },
     {
-      label: "Účastníci",
+      label: "Poradcovia",
       value: stats.advisorCount,
       icon: <UsersIcon className='h-8 w-8' />,
       link: "/advisors",
